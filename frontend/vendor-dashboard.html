@@ -1,1 +1,690 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Vendor Dashboard — GigsUp</title><script src="https://cdn.tailwindcss.com"></script><link rel="stylesheet" href="css/style.css"></head><body class="dashboard-page"><header class="dash-top"><a class="brand" href="index.html"><span class="brand-mark">G</span> Gigs<span class="accent">Up</span></a><div><span id="userLabel" class="muted">Vendor workspace</span> <button class="btn btn-outline btn-small logout-button">Logout</button></div></header><div class="dash-layout"><aside class="sidebar"><div class="sidebar-user"><div class="avatar">V</div><div><b id="sidebarName">Vendor</b><small>Business account</small></div></div><a class="side-active" href="#overview">▦ &nbsp; Dashboard</a><a href="#postShift">＋ &nbsp; Post a shift</a><a href="#posted">▤ &nbsp; Posted shifts</a></aside><main class="dash-content"><div class="dash-heading"><div><span class="eyebrow">VENDOR WORKSPACE</span><h1>Manage your shifts.</h1><p class="muted">Create listings and keep track of posted opportunities.</p></div><button id="refreshVendor" class="btn btn-outline btn-small">↻ Refresh</button></div><div id="dashMessage" class="message hidden"></div><section class="metric-grid" id="overview"><article class="metric"><span>Total posted</span><strong id="postedCount">—</strong><small>Shifts listed by you</small></article><article class="metric"><span>Active / open</span><strong id="activeCount">—</strong><small>Based on returned status</small></article><article class="metric"><span>Completed</span><strong id="completedCount">—</strong><small>Based on returned status</small></article></section><section class="panel" id="postShift"><div class="panel-heading"><div><h2>Post a new shift</h2><p class="muted">Times must be in the future. Coordinates are required by the backend.</p></div></div><form id="postShiftForm" class="form-grid"><div class="span-two"><label for="shiftTitle">Shift title</label><input id="shiftTitle" maxlength="180" placeholder="e.g. Event support assistant" required></div><div class="span-two"><label for="shiftDescription">Description</label><textarea id="shiftDescription" rows="3" placeholder="Describe the role and expectations"></textarea></div><div><label for="payRate">Pay rate (₹)</label><input id="payRate" type="number" min="0.01" step="0.01" placeholder="500" required></div><div><label for="vendorLat">Latitude</label><input id="vendorLat" type="number" min="-90" max="90" step="any" placeholder="28.6139" required></div><div><label for="vendorLng">Longitude</label><input id="vendorLng" type="number" min="-180" max="180" step="any" placeholder="77.2090" required></div><div><label for="startTime">Start time</label><input id="startTime" type="datetime-local" required></div><div><label for="endTime">End time</label><input id="endTime" type="datetime-local" required></div><div class="span-two"><button class="btn btn-primary" type="submit">＋ Post shift</button></div></form></section><section class="panel" id="posted"><div class="panel-heading"><div><h2>Your posted shifts</h2><p class="muted">Listings returned by your posted-shifts endpoint.</p></div></div><div id="postedResults" class="shift-list"><div class="empty-state">Loading posted shifts…</div></div></section></main></div><script src="js/app.js"></script><script src="js/vendor.js"></script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>Vendor Dashboard — GigsUp</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="css/style.css">
+
+    <!-- Leaflet map CSS -->
+    <link
+            rel="stylesheet"
+            href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    >
+
+    <style>
+        .location-search-wrapper {
+            display: flex;
+            gap: 8px;
+            width: 100%;
+        }
+
+        .location-search-wrapper input {
+            flex: 1;
+            min-width: 0;
+        }
+
+        #vendorLocationMap {
+            height: 350px;
+            width: 100%;
+            margin-top: 12px;
+            border-radius: 12px;
+            border: 1px solid rgba(148, 163, 184, 0.3);
+            z-index: 1;
+        }
+
+        #vendorLocationResults {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        .vendor-location-result {
+            width: 100%;
+            padding: 10px 12px;
+            text-align: left;
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            border-radius: 8px;
+            background: rgba(148, 163, 184, 0.08);
+            cursor: pointer;
+            font-size: 14px;
+            color: inherit;
+        }
+
+        .vendor-location-result:hover {
+            background: rgba(34, 197, 94, 0.12);
+        }
+
+        .location-help {
+            display: block;
+            margin-top: 7px;
+            font-size: 12px;
+            opacity: 0.8;
+        }
+
+        .location-status {
+            margin-top: 8px;
+            font-size: 13px;
+        }
+
+        .location-coordinates {
+            margin-top: 8px;
+            font-size: 12px;
+            opacity: 0.8;
+            overflow-wrap: anywhere;
+        }
+
+        @media (max-width: 640px) {
+            .location-search-wrapper {
+                flex-direction: column;
+            }
+
+            #vendorLocationMap {
+                height: 280px;
+            }
+        }
+    </style>
+</head>
+
+<body class="dashboard-page">
+
+<!-- Header -->
+<header class="dash-top">
+    <a class="brand" href="index.html">
+        <span class="brand-mark">G</span>
+        Gigs<span class="accent">Up</span>
+    </a>
+
+    <div>
+        <span id="userLabel" class="muted">Vendor workspace</span>
+        <button class="btn btn-outline btn-small logout-button">
+            Logout
+        </button>
+    </div>
+</header>
+
+<div class="dash-layout">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+
+        <div class="sidebar-user">
+            <div class="avatar">V</div>
+
+            <div>
+                <b id="sidebarName">Vendor</b>
+                <small>Business account</small>
+            </div>
+        </div>
+
+        <a class="side-active" href="#overview">
+            ▦ &nbsp; Dashboard
+        </a>
+
+        <a href="#postShift">
+            ＋ &nbsp; Post a shift
+        </a>
+
+        <a href="#posted">
+            ▤ &nbsp; Posted shifts
+        </a>
+
+        <!-- NEW: Vendor Profile -->
+        <a href="vendor-profile.html">
+            👤 &nbsp; My Profile
+        </a>
+
+    </aside>
+
+    <!-- Main Content -->
+    <main class="dash-content">
+
+        <div class="dash-heading">
+            <div>
+                <span class="eyebrow">VENDOR WORKSPACE</span>
+                <h1>Manage your shifts.</h1>
+                <p class="muted">
+                    Create listings and keep track of posted opportunities.
+                </p>
+            </div>
+
+            <button id="refreshVendor" class="btn btn-outline btn-small">
+                ↻ Refresh
+            </button>
+        </div>
+
+        <div id="dashMessage" class="message hidden"></div>
+
+        <!-- Dashboard Metrics -->
+        <section class="metric-grid" id="overview">
+
+            <article class="metric">
+                <span>Total posted</span>
+                <strong id="postedCount">—</strong>
+                <small>Shifts listed by you</small>
+            </article>
+
+            <article class="metric">
+                <span>Active / open</span>
+                <strong id="activeCount">—</strong>
+                <small>Based on returned status</small>
+            </article>
+
+            <article class="metric">
+                <span>Completed</span>
+                <strong id="completedCount">—</strong>
+                <small>Based on returned status</small>
+            </article>
+
+        </section>
+
+        <!-- Post Shift Form -->
+        <section class="panel" id="postShift">
+
+            <div class="panel-heading">
+                <div>
+                    <h2>Post a new shift</h2>
+                    <p class="muted">
+                        Add the job details, choose its location on the map,
+                        and select the shift timings.
+                    </p>
+                </div>
+            </div>
+
+            <form id="postShiftForm" class="form-grid">
+
+                <!-- Job Title -->
+                <div class="span-two">
+                    <label for="shiftTitle">Shift title</label>
+
+                    <input
+                            id="shiftTitle"
+                            maxlength="180"
+                            placeholder="e.g. Event support assistant"
+                            required
+                    >
+                </div>
+
+                <!-- Description -->
+                <div class="span-two">
+                    <label for="shiftDescription">Description</label>
+
+                    <textarea
+                            id="shiftDescription"
+                            rows="3"
+                            placeholder="Describe the role and expectations"
+                    ></textarea>
+                </div>
+
+                <!-- Pay -->
+                <div>
+                    <label for="payRate">Pay rate (₹)</label>
+
+                    <input
+                            id="payRate"
+                            type="number"
+                            min="0.01"
+                            step="0.01"
+                            placeholder="500"
+                            required
+                    >
+                </div>
+
+                <!-- Location Picker -->
+                <div class="span-two">
+
+                    <label for="vendorLocationSearch">
+                        Job location
+                    </label>
+
+                    <div class="location-search-wrapper">
+
+                        <input
+                                id="vendorLocationSearch"
+                                type="text"
+                                placeholder="Search area, market, city or landmark..."
+                                autocomplete="off"
+                                aria-label="Search for job location"
+                        >
+
+                        <button
+                                class="btn btn-primary"
+                                type="button"
+                                id="vendorLocationSearchBtn"
+                        >
+                            Search
+                        </button>
+
+                    </div>
+
+                    <small class="location-help">
+                        Search for the place where the job will take place.
+                        Select a result or click on the map to pin the location.
+                    </small>
+
+                    <div
+                            id="vendorLocationResults"
+                            aria-live="polite"
+                    ></div>
+
+                    <div
+                            id="vendorLocationStatus"
+                            class="location-status muted"
+                            aria-live="polite"
+                    >
+                        Choose the location for this shift.
+                    </div>
+
+                    <!-- Interactive Map -->
+                    <div
+                            id="vendorLocationMap"
+                            aria-label="Interactive map to select the job location"
+                    ></div>
+
+                    <div class="location-coordinates">
+                        Selected location:
+                        <span id="vendorSelectedCoordinates">
+                            No location selected
+                        </span>
+                    </div>
+
+                </div>
+
+                <!-- Coordinates used by vendor.js -->
+                <div>
+                    <label for="vendorLat">Latitude</label>
+
+                    <input
+                            id="vendorLat"
+                            type="number"
+                            min="-90"
+                            max="90"
+                            step="any"
+                            placeholder="Select a location on the map"
+                            required
+                    >
+                </div>
+
+                <div>
+                    <label for="vendorLng">Longitude</label>
+
+                    <input
+                            id="vendorLng"
+                            type="number"
+                            min="-180"
+                            max="180"
+                            step="any"
+                            placeholder="Select a location on the map"
+                            required
+                    >
+                </div>
+
+                <!-- Shift Timing -->
+                <div>
+                    <label for="startTime">Start time</label>
+
+                    <input
+                            id="startTime"
+                            type="datetime-local"
+                            required
+                    >
+                </div>
+
+                <div>
+                    <label for="endTime">End time</label>
+
+                    <input
+                            id="endTime"
+                            type="datetime-local"
+                            required
+                    >
+                </div>
+
+                <!-- Submit -->
+                <div class="span-two">
+                    <button class="btn btn-primary" type="submit">
+                        ＋ Post shift
+                    </button>
+                </div>
+
+            </form>
+
+        </section>
+
+        <!-- Posted Shifts -->
+        <section class="panel" id="posted">
+
+            <div class="panel-heading">
+                <div>
+                    <h2>Your posted shifts</h2>
+                    <p class="muted">
+                        Listings returned by your posted-shifts endpoint.
+                    </p>
+                </div>
+            </div>
+
+            <div id="postedResults" class="shift-list">
+                <div class="empty-state">
+                    Loading posted shifts…
+                </div>
+            </div>
+
+        </section>
+
+    </main>
+
+</div>
+
+<!-- Leaflet Map Library -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<!-- Existing GigsUp Scripts -->
+<script src="js/app.js"></script>
+<script src="js/vendor.js"></script>
+
+<!-- Vendor Location Picker -->
+<script>
+    (() => {
+        const searchInput =
+            document.getElementById("vendorLocationSearch");
+
+        const searchButton =
+            document.getElementById("vendorLocationSearchBtn");
+
+        const resultsContainer =
+            document.getElementById("vendorLocationResults");
+
+        const statusElement =
+            document.getElementById("vendorLocationStatus");
+
+        const coordinatesText =
+            document.getElementById("vendorSelectedCoordinates");
+
+        const latitudeInput =
+            document.getElementById("vendorLat");
+
+        const longitudeInput =
+            document.getElementById("vendorLng");
+
+        if (
+            !searchInput ||
+            !searchButton ||
+            !resultsContainer ||
+            !statusElement ||
+            !coordinatesText ||
+            !latitudeInput ||
+            !longitudeInput
+        ) {
+            return;
+        }
+
+        if (typeof L === "undefined") {
+            statusElement.textContent =
+                "Map failed to load. Check your internet connection.";
+            return;
+        }
+
+        // Default map view: Greater Noida.
+        // This is only the initial map center, not the job location.
+        const defaultLat = 28.4744;
+        const defaultLng = 77.5040;
+
+        const map = L.map("vendorLocationMap").setView(
+            [defaultLat, defaultLng],
+            12
+        );
+
+        L.tileLayer(
+            "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+            {
+                maxZoom: 19,
+                attribution:
+                    '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors'
+            }
+        ).addTo(map);
+
+        // A location is not selected until the vendor chooses one.
+        const marker = L.marker(
+            [defaultLat, defaultLng],
+            { draggable: true }
+        );
+
+        let locationSelected = false;
+
+        function updateLocation(latValue, lngValue, description) {
+            const lat = Number(latValue);
+            const lng = Number(lngValue);
+
+            if (
+                !Number.isFinite(lat) ||
+                !Number.isFinite(lng) ||
+                lat < -90 ||
+                lat > 90 ||
+                lng < -180 ||
+                lng > 180
+            ) {
+                statusElement.textContent =
+                    "Invalid coordinates. Please select a valid location.";
+                return;
+            }
+
+            latitudeInput.value = lat.toFixed(6);
+            longitudeInput.value = lng.toFixed(6);
+
+            marker.setLatLng([lat, lng]);
+
+            if (!map.hasLayer(marker)) {
+                marker.addTo(map);
+            }
+
+            map.setView([lat, lng], 16);
+
+            marker.bindPopup(
+                description
+                    ? escapeHtml(description)
+                    : "Selected job location"
+            );
+
+            coordinatesText.textContent =
+                lat.toFixed(6) + ", " + lng.toFixed(6);
+
+            statusElement.textContent = description
+                ? "Selected job location: " + description
+                : "Job location selected successfully.";
+
+            locationSelected = true;
+
+            resultsContainer.replaceChildren();
+        }
+
+        function escapeHtml(value) {
+            const span = document.createElement("span");
+            span.textContent = value;
+            return span.innerHTML;
+        }
+
+        // Select location by clicking the map.
+        map.on("click", (event) => {
+            updateLocation(
+                event.latlng.lat,
+                event.latlng.lng,
+                "Map-selected location"
+            );
+        });
+
+        // Select location by dragging the marker.
+        marker.on("dragend", (event) => {
+            const position = event.target.getLatLng();
+
+            updateLocation(
+                position.lat,
+                position.lng,
+                "Adjusted map location"
+            );
+        });
+
+        async function searchLocation() {
+            const query = searchInput.value.trim();
+
+            if (query.length < 2) {
+                statusElement.textContent =
+                    "Enter at least two characters to search.";
+                searchInput.focus();
+                return;
+            }
+
+            searchButton.disabled = true;
+            searchButton.textContent = "Searching...";
+            statusElement.textContent = "Searching for job locations...";
+
+            resultsContainer.replaceChildren();
+
+            try {
+                const url = new URL(
+                    "https://nominatim.openstreetmap.org/search"
+                );
+
+                url.searchParams.set("q", query);
+                url.searchParams.set("format", "jsonv2");
+                url.searchParams.set("limit", "5");
+                url.searchParams.set("addressdetails", "1");
+
+                const response = await fetch(url.toString(), {
+                    headers: {
+                        Accept: "application/json"
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(
+                        "Location search returned status " + response.status
+                    );
+                }
+
+                const locations = await response.json();
+
+                if (locations.length === 0) {
+                    statusElement.textContent =
+                        "No results found. Try another area or landmark.";
+                    return;
+                }
+
+                statusElement.textContent =
+                    "Select the correct job location from the results.";
+
+                locations.forEach((location) => {
+                    const button = document.createElement("button");
+
+                    button.type = "button";
+                    button.className = "vendor-location-result";
+                    button.textContent = location.display_name;
+
+                    button.addEventListener("click", () => {
+                        searchInput.value = location.display_name;
+
+                        updateLocation(
+                            location.lat,
+                            location.lon,
+                            location.display_name
+                        );
+
+                        marker.openPopup();
+                    });
+
+                    resultsContainer.appendChild(button);
+                });
+
+            } catch (error) {
+                console.error("Vendor location search failed:", error);
+
+                statusElement.textContent =
+                    "Location search failed. Check your internet connection and try again.";
+            } finally {
+                searchButton.disabled = false;
+                searchButton.textContent = "Search";
+            }
+        }
+
+        searchButton.addEventListener("click", searchLocation);
+
+        searchInput.addEventListener("keydown", (event) => {
+            if (event.key === "Enter") {
+                event.preventDefault();
+                searchLocation();
+            }
+        });
+
+        // Synchronize coordinates if manually edited.
+        function syncMarkerFromInputs() {
+            const latText = latitudeInput.value.trim();
+            const lngText = longitudeInput.value.trim();
+
+            if (latText === "" || lngText === "") {
+                return;
+            }
+
+            const lat = Number(latText);
+            const lng = Number(lngText);
+
+            if (
+                !Number.isFinite(lat) ||
+                !Number.isFinite(lng) ||
+                lat < -90 ||
+                lat > 90 ||
+                lng < -180 ||
+                lng > 180
+            ) {
+                return;
+            }
+
+            updateLocation(lat, lng, "Manually entered location");
+        }
+
+        latitudeInput.addEventListener(
+            "change",
+            syncMarkerFromInputs
+        );
+
+        longitudeInput.addEventListener(
+            "change",
+            syncMarkerFromInputs
+        );
+
+        // Require an explicitly selected location before posting.
+        const postForm = document.getElementById("postShiftForm");
+
+        if (postForm) {
+            postForm.addEventListener("submit", (event) => {
+                if (!locationSelected) {
+                    event.preventDefault();
+                    event.stopImmediatePropagation();
+
+                    statusElement.textContent =
+                        "Please search for a location or click on the map before posting.";
+
+                    document.getElementById("vendorLocationSearch")
+                        .scrollIntoView({
+                            behavior: "smooth",
+                            block: "center"
+                        });
+                }
+            }, true);
+        }
+
+        // Correct map sizing after initial page layout.
+        setTimeout(() => {
+            map.invalidateSize();
+        }, 300);
+
+        window.addEventListener("resize", () => {
+            map.invalidateSize();
+        });
+    })();
+</script>
+
+</body>
+</html>

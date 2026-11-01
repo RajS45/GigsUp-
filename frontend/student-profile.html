@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Student Profile — GigsUp</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="css/style.css">
+
+    <style>
+        body {
+            background: #0b1120;
+            color: #e5e7eb;
+        }
+
+        .profile-container {
+            max-width: 1000px;
+            margin: 40px auto;
+            padding: 20px;
+        }
+
+        .profile-card {
+            background: #111c30;
+            border: 1px solid #263449;
+            border-radius: 16px;
+            padding: 28px;
+            margin-bottom: 24px;
+        }
+
+        .profile-header {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .profile-avatar {
+            width: 82px;
+            height: 82px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            background: #183c34;
+            color: #4ade80;
+            font-size: 34px;
+            font-weight: bold;
+        }
+
+        .profile-name {
+            font-size: 28px;
+            font-weight: 700;
+        }
+
+        .rating-summary,
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 16px;
+            margin-top: 24px;
+        }
+
+        .rating-box,
+        .stat-box {
+            padding: 20px;
+            background: #0b1120;
+            border-radius: 12px;
+            border: 1px solid #263449;
+        }
+
+        .rating-number,
+        .stat-number {
+            display: block;
+            margin-top: 8px;
+            font-size: 28px;
+            font-weight: 700;
+            color: #4ade80;
+        }
+
+        .review-card,
+        .work-card {
+            background: #0b1120;
+            border: 1px solid #263449;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 14px;
+        }
+
+        .review-stars {
+            color: #fbbf24;
+            font-size: 19px;
+            letter-spacing: 2px;
+            margin-top: 8px;
+        }
+
+        .muted-text {
+            color: #9ca3af;
+        }
+
+        .profile-actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+
+        .profile-link {
+            display: inline-block;
+            padding: 10px 16px;
+            border-radius: 8px;
+            background: #1f2937;
+            color: white;
+            text-decoration: none;
+        }
+
+        .profile-link:hover {
+            background: #374151;
+        }
+
+        .message-box {
+            padding: 14px;
+            margin-top: 16px;
+            border-radius: 8px;
+            background: #172338;
+            color: #d1d5db;
+        }
+
+        .section-heading {
+            font-size: 23px;
+            font-weight: 700;
+        }
+
+        .work-status {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            background: #163b2c;
+            color: #4ade80;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        @media (max-width: 600px) {
+            .profile-container {
+                margin: 15px auto;
+                padding: 12px;
+            }
+
+            .profile-card {
+                padding: 20px;
+            }
+
+            .rating-summary,
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .profile-name {
+                font-size: 23px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<header class="dash-top">
+    <a class="brand" href="index.html">
+        <span class="brand-mark">G</span>
+        Gigs<span class="accent">Up</span>
+    </a>
+
+    <div>
+        <span id="userLabel" class="muted">Student Profile</span>
+
+        <button
+                id="logoutButton"
+                class="btn btn-outline btn-small"
+                type="button"
+        >
+            Logout
+        </button>
+    </div>
+</header>
+
+<main class="profile-container">
+
+    <!-- Student Profile -->
+    <section class="profile-card">
+
+        <div class="profile-header">
+
+            <div class="profile-avatar" id="profileAvatar">S</div>
+
+            <div>
+                <p class="muted-text">STUDENT ACCOUNT</p>
+
+                <h1 class="profile-name" id="studentName">
+                    Loading profile...
+                </h1>
+
+                <p class="muted-text" id="studentEmail"></p>
+            </div>
+
+        </div>
+
+        <!-- Rating Summary -->
+        <div class="rating-summary">
+
+            <div class="rating-box">
+                <span class="muted-text">Average Rating</span>
+
+                <strong class="rating-number" id="averageRating">
+                    —
+                </strong>
+
+                <div class="review-stars" id="averageStars">
+                    ☆☆☆☆☆
+                </div>
+            </div>
+
+            <div class="rating-box">
+                <span class="muted-text">Reviews Received</span>
+
+                <strong class="rating-number" id="reviewCount">
+                    —
+                </strong>
+
+                <span class="muted-text">Feedback from vendors</span>
+            </div>
+
+        </div>
+
+        <!-- Work Statistics -->
+        <div class="stats-grid">
+
+            <div class="stat-box">
+                <span class="muted-text">Completed Shifts</span>
+
+                <strong class="stat-number" id="completedCount">
+                    —
+                </strong>
+            </div>
+
+            <div class="stat-box">
+                <span class="muted-text">Work History</span>
+
+                <strong class="stat-number" id="workHistoryCount">
+                    —
+                </strong>
+            </div>
+
+        </div>
+
+        <div class="profile-actions">
+            <a class="profile-link" href="student-dashboard.html">
+                ← Back to Dashboard
+            </a>
+        </div>
+
+        <div id="profileMessage" class="message-box" aria-live="polite">
+            Loading your profile...
+        </div>
+
+    </section>
+
+    <!-- Completed Work History -->
+    <section class="profile-card">
+
+        <h2 class="section-heading">💼 Completed Work History</h2>
+
+        <p class="muted-text" style="margin-top: 8px;">
+            Your previously completed shifts.
+        </p>
+
+        <div id="workHistoryList">
+            <div class="message-box">Loading work history...</div>
+        </div>
+
+    </section>
+
+    <!-- Vendor Feedback -->
+    <section class="profile-card">
+
+        <h2 class="section-heading">⭐ Feedback from Vendors</h2>
+
+        <p class="muted-text" style="margin-top: 8px;">
+            Ratings and feedback received from vendors after completed shifts.
+        </p>
+
+        <div id="reviewsList">
+            <div class="message-box">Loading reviews...</div>
+        </div>
+
+    </section>
+
+</main>
+
+<script src="js/app.js"></script>
+
+<script>
+    (() => {
+        const $ = id => document.getElementById(id);
+
+        const user = window.GigsUp?.getUser?.();
+
+        function showMessage(message) {
+            $("profileMessage").textContent = message;
+        }
+
+        function escapeHtml(value) {
+            return String(value ?? "").replace(/[&<>"']/g, character => ({
+                "&": "&amp;",
+                "<": "&lt;",
+                ">": "&gt;",
+                '"': "&quot;",
+                "'": "&#39;"
+            })[character]);
+        }
+
+        function renderStars(rating) {
+            const rounded = Math.max(
+                0,
+                Math.min(5, Math.round(Number(rating) || 0))
+            );
+
+            return "★".repeat(rounded) + "☆".repeat(5 - rounded);
+        }
+
+        function getRating(item) {
+            return Number(
+                item.rating ??
+                item.stars ??
+                item.score ??
+                0
+            );
+        }
+
+        function getReviewerName(review) {
+            return review.reviewerName ??
+                review.vendorName ??
+                review.reviewer?.name ??
+                review.vendor?.name ??
+                "Vendor";
+        }
+
+        function getReviewComment(review) {
+            return review.comment ??
+                review.reviewText ??
+                review.feedback ??
+                review.message ??
+                "";
+        }
+
+        function getShiftTitle(shift) {
+            return shift.title ??
+                shift.shiftTitle ??
+                shift.name ??
+                "Completed shift";
+        }
+
+        function getShiftDate(shift) {
+            return shift.startTime ??
+                shift.startDateTime ??
+                shift.createdAt ??
+                null;
+        }
+
+        function formatDate(value) {
+            if (!value) {
+                return "";
+            }
+
+            const date = new Date(value);
+
+            return Number.isNaN(date.getTime())
+                ? ""
+                : date.toLocaleString();
+        }
+
+        async function loadStudentProfile() {
+            if (!window.GigsUp) {
+                showMessage("Application scripts failed to load.");
+                return;
+            }
+
+            if (!user || !user.userId || user.role !== "STUDENT") {
+                $("studentName").textContent = "Student profile";
+
+                showMessage(
+                    "Please log in with your student account to view your profile."
+                );
+
+                $("workHistoryList").innerHTML =
+                    '<div class="message-box">Log in as a student to view your completed work.</div>';
+
+                $("reviewsList").innerHTML =
+                    '<div class="message-box">Log in as a student to view your reviews.</div>';
+
+                return;
+            }
+
+            const studentId = user.userId;
+
+            $("studentName").textContent =
+                user.name || "Student";
+
+            $("studentEmail").textContent =
+                user.email || "";
+
+            $("profileAvatar").textContent =
+                (user.name || "S").charAt(0).toUpperCase();
+
+            try {
+                /*
+                 * Reviews API:
+                 * GET /api/reviews/users/{studentId}
+                 * GET /api/reviews/users/{studentId}/summary
+                 *
+                 * The work-history endpoint below must match your backend.
+                 */
+                const results = await Promise.allSettled([
+                    GigsUp.api(`/api/reviews/users/${studentId}/summary`),
+                    GigsUp.api(`/api/reviews/users/${studentId}`),
+                    GigsUp.api(`/api/shifts/student/${studentId}`)
+                ]);
+
+                const summaryResult = results[0];
+                const reviewsResult = results[1];
+                const shiftsResult = results[2];
+
+                let summary = null;
+                let reviews = [];
+                let shifts = [];
+
+                if (summaryResult.status === "fulfilled") {
+                    summary = summaryResult.value;
+                }
+
+                if (reviewsResult.status === "fulfilled") {
+                    const result = reviewsResult.value;
+
+                    reviews = Array.isArray(result)
+                        ? result
+                        : Array.isArray(result?.content)
+                            ? result.content
+                            : Array.isArray(result?.reviews)
+                                ? result.reviews
+                                : [];
+                }
+
+                if (shiftsResult.status === "fulfilled") {
+                    const result = shiftsResult.value;
+
+                    shifts = Array.isArray(result)
+                        ? result
+                        : Array.isArray(result?.content)
+                            ? result.content
+                            : Array.isArray(result?.shifts)
+                                ? result.shifts
+                                : [];
+                }
+
+                // Calculate rating from the received reviews if necessary.
+                const ratings = reviews
+                    .map(getRating)
+                    .filter(rating => rating > 0 && rating <= 5);
+
+                const calculatedAverage = ratings.length
+                    ? ratings.reduce((total, rating) => total + rating, 0)
+                    / ratings.length
+                    : 0;
+
+                const average = Number(
+                    summary?.averageRating ??
+                    summary?.average ??
+                    summary?.rating ??
+                    calculatedAverage
+                );
+
+                const count = Number(
+                    summary?.reviewCount ??
+                    summary?.totalReviews ??
+                    summary?.count ??
+                    reviews.length
+                );
+
+                $("averageRating").textContent =
+                    count > 0 ? `${average.toFixed(1)} / 5` : "No ratings";
+
+                $("averageStars").textContent =
+                    count > 0 ? renderStars(average) : "☆☆☆☆☆";
+
+                $("reviewCount").textContent = count;
+
+                renderReviews(reviews);
+                renderWorkHistory(shifts);
+
+                if (
+                    summaryResult.status === "rejected" &&
+                    reviewsResult.status === "rejected"
+                ) {
+                    showMessage(
+                        "Could not load ratings. Check your backend and login session."
+                    );
+                } else if (shiftsResult.status === "rejected") {
+                    showMessage(
+                        "Profile and reviews loaded. Work history could not be loaded; check the student shifts API endpoint."
+                    );
+                } else {
+                    showMessage("Student profile loaded successfully.");
+                }
+
+            } catch (error) {
+                console.error("Unable to load student profile:", error);
+
+                showMessage(
+                    "Unable to load profile. Please refresh the page."
+                );
+            }
+        }
+
+        function renderReviews(reviews) {
+            const container = $("reviewsList");
+
+            if (!Array.isArray(reviews) || reviews.length === 0) {
+                container.innerHTML =
+                    '<div class="message-box">No vendor feedback yet. Reviews will appear here after vendors rate completed shifts.</div>';
+                return;
+            }
+
+            container.innerHTML = reviews.map(review => {
+                const rating = Math.max(
+                    0,
+                    Math.min(5, getRating(review))
+                );
+
+                const reviewer = escapeHtml(getReviewerName(review));
+                const comment = escapeHtml(getReviewComment(review));
+
+                const dateValue =
+                    review.createdAt ??
+                    review.reviewedAt ??
+                    review.createdDate ??
+                    null;
+
+                return `
+                <article class="review-card">
+
+                    <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+                        <strong>${reviewer}</strong>
+
+                        <span class="muted-text">
+                            ${escapeHtml(formatDate(dateValue))}
+                        </span>
+                    </div>
+
+                    <div class="review-stars"
+                         aria-label="${rating} out of 5 stars">
+                        ${renderStars(rating)}
+                    </div>
+
+                    <p style="margin-top:12px;white-space:pre-wrap;overflow-wrap:anywhere;">
+                        ${comment || "No written comment provided."}
+                    </p>
+
+                </article>
+            `;
+            }).join("");
+        }
+
+        function renderWorkHistory(shifts) {
+            const container = $("workHistoryList");
+
+            if (!Array.isArray(shifts)) {
+                container.innerHTML =
+                    '<div class="message-box">Work history is unavailable.</div>';
+                return;
+            }
+
+            // Only display completed shifts.
+            const completedShifts = shifts.filter(shift =>
+                String(shift.status ?? "").toUpperCase() === "COMPLETED"
+            );
+
+            $("completedCount").textContent = completedShifts.length;
+            $("workHistoryCount").textContent = shifts.length;
+
+            if (completedShifts.length === 0) {
+                container.innerHTML =
+                    '<div class="message-box">No completed shifts found yet.</div>';
+                return;
+            }
+
+            container.innerHTML = completedShifts.map(shift => {
+                const title = escapeHtml(getShiftTitle(shift));
+
+                const vendorName = escapeHtml(
+                    shift.vendorName ??
+                    shift.vendor?.name ??
+                    shift.businessName ??
+                    "Vendor"
+                );
+
+                const date = escapeHtml(formatDate(getShiftDate(shift)));
+
+                const pay = Number(
+                    shift.payRate ??
+                    shift.pay ??
+                    shift.amount ??
+                    0
+                );
+
+                return `
+                <article class="work-card">
+
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
+                        <h3 style="font-size:18px;font-weight:700;">
+                            ${title}
+                        </h3>
+
+                        <span class="work-status">COMPLETED</span>
+                    </div>
+
+                    <p class="muted-text" style="margin-top:10px;">
+                        Vendor: ${vendorName}
+                    </p>
+
+                    ${date ? `
+                        <p class="muted-text" style="margin-top:6px;">
+                            Date: ${date}
+                        </p>
+                    ` : ""}
+
+                    ${pay > 0 ? `
+                        <p style="margin-top:8px;color:#4ade80;font-weight:600;">
+                            Pay: ₹${pay.toLocaleString("en-IN")}
+                        </p>
+                    ` : ""}
+
+                </article>
+            `;
+            }).join("");
+        }
+
+        $("logoutButton").addEventListener("click", () => {
+            localStorage.removeItem("gigsup_token");
+            localStorage.removeItem("gigsup_user");
+
+            window.location.href = "login.html";
+        });
+
+        loadStudentProfile();
+    })();
+</script>
+
+</body>
+</html>

@@ -1,18 +1,651 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Student Dashboard — GigsUp</title><script src="https://cdn.tailwindcss.com"></script><link rel="stylesheet" href="css/style.css"></head><body class="dashboard-page"><header class="dash-top"><a class="brand" href="index.html"><span class="brand-mark">G</span> Gigs<span class="accent">Up</span></a><div><span id="userLabel" class="muted">Student workspace</span> <button class="btn btn-outline btn-small logout-button">Logout</button></div></header><div class="dash-layout"><aside class="sidebar"><div class="sidebar-user"><div class="avatar">S</div><div><b id="sidebarName">Student</b><small>Student account</small></div></div><a class="side-active" href="#overview">▦ &nbsp; Dashboard</a><a href="#available">⌕ &nbsp; Find shifts</a><a href="#accepted">✓ &nbsp; Accepted shifts</a><a href="#availability">◷ &nbsp; My availability</a></aside><main class="dash-content"><div class="dash-heading"><div><span class="eyebrow">STUDENT WORKSPACE</span><h1>Find your next gig.</h1><p class="muted">Browse opportunities and manage your shift activity.</p></div><button id="refreshStudent" class="btn btn-outline btn-small">↻ Refresh</button></div><div id="dashMessage" class="message hidden"></div><section class="metric-grid" id="overview"><article class="metric"><span>Accepted shifts</span><strong id="acceptedCount">—</strong><small>Your accepted shifts</small></article><article class="metric"><span>Available to work</span><strong>Explore</strong><small>Find a shift that fits</small></article><article class="metric"><span>Availability windows</span><strong id="availabilityCount">—</strong><small>Your saved time windows</small></article></section><section class="panel" id="available"><div class="panel-heading"><div><h2>Find matching shifts</h2><p class="muted">Matching request fields will be connected after confirming ShiftMatchRequest.java.</p></div></div><form id="matchForm" class="inline-form">
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Student Dashboard — GigsUp</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Existing GigsUp Styles -->
+  <link rel="stylesheet" href="css/style.css">
+
+  <!-- Leaflet Map Styles -->
+  <link
+          rel="stylesheet"
+          href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  >
+
+  <style>
+    .location-search-wrapper {
+      display: flex;
+      gap: 8px;
+      width: 100%;
+    }
+
+    .location-search-wrapper input {
+      flex: 1;
+      min-width: 0;
+    }
+
+    #matchLocationMap {
+      height: 350px;
+      width: 100%;
+      border-radius: 12px;
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      margin-top: 12px;
+      z-index: 1;
+    }
+
+    #locationSearchResults {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .location-result {
+      display: block;
+      width: 100%;
+      text-align: left;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      background: rgba(148, 163, 184, 0.08);
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .location-result:hover {
+      background: rgba(34, 197, 94, 0.12);
+    }
+
+    .location-help {
+      display: block;
+      margin-top: 6px;
+      font-size: 12px;
+      opacity: 0.75;
+    }
+
+    .location-status {
+      font-size: 13px;
+      margin-top: 8px;
+    }
+
+    .location-coordinates {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+      font-size: 12px;
+      opacity: 0.8;
+    }
+
+    @media (max-width: 640px) {
+      .location-search-wrapper {
+        flex-direction: column;
+      }
+
+      #matchLocationMap {
+        height: 280px;
+      }
+    }
+  </style>
+</head>
+
+<body class="dashboard-page">
+
+<!-- Dashboard Header -->
+<header class="dash-top">
+  <a class="brand" href="index.html">
+    <span class="brand-mark">G</span>
+    Gigs<span class="accent">Up</span>
+  </a>
+
   <div>
-    <label for="matchLat">Latitude</label>
-    <input id="matchLat" type="number" min="-90" max="90"
-           step="any" value="28.6139" required>
+    <span id="userLabel" class="muted">Student workspace</span>
+    <button class="btn btn-outline btn-small logout-button">
+      Logout
+    </button>
   </div>
-  <div>
-    <label for="matchLng">Longitude</label>
-    <input id="matchLng" type="number" min="-180" max="180"
-           step="any" value="77.2090" required>
-  </div>
-  <div>
-    <label for="matchRadius">Search radius (meters)</label>
-    <input id="matchRadius" type="number" min="1" max="100000"
-           step="any" value="5000" required>
-  </div>
-  <button class="btn btn-primary" type="submit">Find shifts</button>
-</form><div id="matchResults" class="shift-list"><div class="empty-state">Search for matching shifts to see results here.</div></div></section><section class="panel" id="accepted"><div class="panel-heading"><div><h2>Accepted shifts</h2><p class="muted">Shifts associated with your account.</p></div></div><div id="acceptedResults" class="shift-list"><div class="empty-state">Loading accepted shifts…</div></div></section><section class="panel" id="availability"><div class="panel-heading"><div><h2>My availability</h2><p class="muted">Save a future time window when you are available.</p></div></div><form id="availabilityForm" class="inline-form"><div><label for="availableFrom">Available from</label><input id="availableFrom" type="datetime-local" required></div><div><label for="availableTo">Available to</label><input id="availableTo" type="datetime-local" required></div><button class="btn btn-primary" type="submit">Save availability</button></form><div id="availabilityResults" class="shift-list"></div></section></main></div><script src="js/app.js"></script><script src="js/student.js"></script></body></html>
+</header>
+
+<div class="dash-layout">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+
+    <div class="sidebar-user">
+      <div class="avatar">S</div>
+      <div>
+        <b id="sidebarName">Student</b>
+        <small>Student account</small>
+      </div>
+    </div>
+
+    <a class="side-active" href="#overview">
+      ▦ &nbsp; Dashboard
+    </a>
+
+    <a href="#available">
+      ⌕ &nbsp; Find shifts
+    </a>
+
+    <a href="#accepted">
+      ✓ &nbsp; Accepted shifts
+    </a>
+
+    <a href="#availability">
+      ◷ &nbsp; My availability
+    </a>
+
+    <!-- NEW: Student Profile -->
+    <a href="student-profile.html">
+      👤 &nbsp; My Profile
+    </a>
+
+  </aside>
+
+  <!-- Main Dashboard -->
+  <main class="dash-content">
+
+    <!-- Heading -->
+    <div class="dash-heading">
+      <div>
+        <span class="eyebrow">STUDENT WORKSPACE</span>
+        <h1>Find your next gig.</h1>
+        <p class="muted">
+          Browse opportunities and manage your shift activity.
+        </p>
+      </div>
+
+      <button id="refreshStudent" class="btn btn-outline btn-small">
+        ↻ Refresh
+      </button>
+    </div>
+
+    <div id="dashMessage" class="message hidden"></div>
+
+    <!-- Dashboard Metrics -->
+    <section class="metric-grid" id="overview">
+
+      <article class="metric">
+        <span>Accepted shifts</span>
+        <strong id="acceptedCount">—</strong>
+        <small>Your accepted shifts</small>
+      </article>
+
+      <article class="metric">
+        <span>Available to work</span>
+        <strong>Explore</strong>
+        <small>Find a shift that fits</small>
+      </article>
+
+      <article class="metric">
+        <span>Availability windows</span>
+        <strong id="availabilityCount">—</strong>
+        <small>Your saved time windows</small>
+      </article>
+
+    </section>
+
+    <!-- Find Matching Shifts -->
+    <section class="panel" id="available">
+
+      <div class="panel-heading">
+        <div>
+          <h2>Find matching shifts</h2>
+          <p class="muted">
+            Search for a location and find nearby job opportunities.
+          </p>
+        </div>
+      </div>
+
+      <form id="matchForm" class="inline-form">
+
+        <!-- Location Search -->
+        <div style="grid-column: 1 / -1;">
+
+          <label for="locationSearch">
+            Search your location
+          </label>
+
+          <div class="location-search-wrapper">
+            <input
+                    id="locationSearch"
+                    type="text"
+                    placeholder="Example: Pari Chowk, Greater Noida"
+                    autocomplete="off"
+                    aria-label="Search for a location"
+            >
+
+            <button
+                    class="btn btn-primary"
+                    type="button"
+                    id="searchLocationBtn"
+            >
+              Search
+            </button>
+          </div>
+
+          <small class="location-help">
+            Search an area, city, college, or landmark. You can also
+            click directly on the map to select a location.
+          </small>
+
+          <div
+                  id="locationSearchResults"
+                  aria-live="polite"
+          ></div>
+
+          <div
+                  id="locationStatus"
+                  class="location-status muted"
+                  aria-live="polite"
+          >
+            Default location: New Delhi.
+          </div>
+
+          <!-- Interactive Map -->
+          <div
+                  id="matchLocationMap"
+                  aria-label="Interactive map for choosing your job search location"
+          ></div>
+
+          <div class="location-coordinates">
+            <span>Selected coordinates:</span>
+            <span id="selectedLocationText">28.6139, 77.2090</span>
+          </div>
+
+        </div>
+
+        <!-- Coordinates retained for existing JS -->
+        <div>
+          <label for="matchLat">Latitude</label>
+          <input
+                  id="matchLat"
+                  type="number"
+                  min="-90"
+                  max="90"
+                  step="any"
+                  value="28.6139"
+                  required
+          >
+        </div>
+
+        <div>
+          <label for="matchLng">Longitude</label>
+          <input
+                  id="matchLng"
+                  type="number"
+                  min="-180"
+                  max="180"
+                  step="any"
+                  value="77.2090"
+                  required
+          >
+        </div>
+
+        <div>
+          <label for="matchRadius">Search radius (meters)</label>
+          <input
+                  id="matchRadius"
+                  type="number"
+                  min="1"
+                  max="100000"
+                  step="any"
+                  value="5000"
+                  required
+          >
+        </div>
+
+        <button class="btn btn-primary" type="submit">
+          Find shifts
+        </button>
+
+      </form>
+
+      <!-- Matching Results -->
+      <div id="matchResults" class="shift-list">
+        <div class="empty-state">
+          Search for matching shifts to see results here.
+        </div>
+      </div>
+
+    </section>
+
+    <!-- Accepted Shifts -->
+    <section class="panel" id="accepted">
+
+      <div class="panel-heading">
+        <div>
+          <h2>Accepted shifts</h2>
+          <p class="muted">
+            Shifts associated with your account.
+          </p>
+        </div>
+      </div>
+
+      <div id="acceptedResults" class="shift-list">
+        <div class="empty-state">
+          Loading accepted shifts…
+        </div>
+      </div>
+
+    </section>
+
+    <!-- Availability -->
+    <section class="panel" id="availability">
+
+      <div class="panel-heading">
+        <div>
+          <h2>My availability</h2>
+          <p class="muted">
+            Save a future time window when you are available.
+          </p>
+        </div>
+      </div>
+
+      <form id="availabilityForm" class="inline-form">
+
+        <div>
+          <label for="availableFrom">Available from</label>
+          <input
+                  id="availableFrom"
+                  type="datetime-local"
+                  required
+          >
+        </div>
+
+        <div>
+          <label for="availableTo">Available to</label>
+          <input
+                  id="availableTo"
+                  type="datetime-local"
+                  required
+          >
+        </div>
+
+        <button class="btn btn-primary" type="submit">
+          Save availability
+        </button>
+
+      </form>
+
+      <div id="availabilityResults" class="shift-list"></div>
+
+    </section>
+
+  </main>
+
+</div>
+
+<!-- Leaflet Map Library -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<!-- Existing GigsUp JavaScript -->
+<script src="js/app.js"></script>
+<script src="js/student.js"></script>
+
+<!-- Location Picker Logic -->
+<script>
+  (() => {
+    const searchInput = document.getElementById("locationSearch");
+    const searchButton = document.getElementById("searchLocationBtn");
+    const resultsContainer = document.getElementById("locationSearchResults");
+    const statusElement = document.getElementById("locationStatus");
+    const selectedLocationText = document.getElementById("selectedLocationText");
+
+    const latitudeInput = document.getElementById("matchLat");
+    const longitudeInput = document.getElementById("matchLng");
+    const matchForm = document.getElementById("matchForm");
+
+    if (
+            !searchInput ||
+            !searchButton ||
+            !latitudeInput ||
+            !longitudeInput ||
+            !matchForm
+    ) {
+      return;
+    }
+
+    if (typeof L === "undefined") {
+      statusElement.textContent =
+              "Map library could not load. Check your internet connection.";
+      return;
+    }
+
+    // Default map center: New Delhi.
+    const defaultLatitude = 28.6139;
+    const defaultLongitude = 77.2090;
+
+    // Create the map.
+    const map = L.map("matchLocationMap").setView(
+            [defaultLatitude, defaultLongitude],
+            12
+    );
+
+    // OpenStreetMap map tiles.
+    L.tileLayer(
+            "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+            {
+              maxZoom: 19,
+              attribution:
+                      '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors'
+            }
+    ).addTo(map);
+
+    // Selected location marker.
+    const marker = L.marker(
+            [defaultLatitude, defaultLongitude],
+            { draggable: true }
+    ).addTo(map);
+
+    marker.bindPopup("Selected search location");
+
+    // Update coordinates and marker.
+    function setLocation(latitude, longitude, description) {
+      const lat = Number(latitude);
+      const lng = Number(longitude);
+
+      if (
+              !Number.isFinite(lat) ||
+              !Number.isFinite(lng) ||
+              lat < -90 ||
+              lat > 90 ||
+              lng < -180 ||
+              lng > 180
+      ) {
+        statusElement.textContent = "Invalid location coordinates.";
+        return;
+      }
+
+      latitudeInput.value = lat.toFixed(6);
+      longitudeInput.value = lng.toFixed(6);
+
+      marker.setLatLng([lat, lng]);
+      map.setView([lat, lng], 15);
+
+      selectedLocationText.textContent =
+              lat.toFixed(6) + ", " + lng.toFixed(6);
+
+      marker.setPopupContent(
+              description
+                      ? escapeHtml(description)
+                      : "Selected search location"
+      );
+
+      statusElement.textContent = description
+              ? "Selected: " + description
+              : "Location selected successfully.";
+
+      resultsContainer.replaceChildren();
+    }
+
+    // Safely display text from search results.
+    function escapeHtml(value) {
+      const element = document.createElement("span");
+      element.textContent = value;
+      return element.innerHTML;
+    }
+
+    // Click anywhere on the map to choose a location.
+    map.on("click", (event) => {
+      setLocation(
+              event.latlng.lat,
+              event.latlng.lng,
+              "Map location"
+      );
+    });
+
+    // Update coordinates when the marker is dragged.
+    marker.on("dragend", (event) => {
+      const position = event.target.getLatLng();
+
+      setLocation(
+              position.lat,
+              position.lng,
+              "Dragged map marker"
+      );
+    });
+
+    // Search places using Nominatim.
+    async function searchLocation() {
+      const query = searchInput.value.trim();
+
+      if (query.length < 2) {
+        statusElement.textContent =
+                "Enter at least two characters to search.";
+        searchInput.focus();
+        return;
+      }
+
+      searchButton.disabled = true;
+      searchButton.textContent = "Searching...";
+      statusElement.textContent = "Searching for locations...";
+      resultsContainer.replaceChildren();
+
+      try {
+        const url = new URL(
+                "https://nominatim.openstreetmap.org/search"
+        );
+
+        url.searchParams.set("q", query);
+        url.searchParams.set("format", "jsonv2");
+        url.searchParams.set("limit", "5");
+        url.searchParams.set("addressdetails", "1");
+
+        const response = await fetch(url.toString(), {
+          headers: {
+            "Accept": "application/json"
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error(
+                  "Location search service returned " + response.status
+          );
+        }
+
+        const locations = await response.json();
+
+        if (!locations.length) {
+          statusElement.textContent =
+                  "No locations found. Try a different area or landmark.";
+          return;
+        }
+
+        statusElement.textContent =
+                "Choose the correct location from the results below.";
+
+        locations.forEach((location) => {
+          const button = document.createElement("button");
+
+          button.type = "button";
+          button.className = "location-result";
+          button.textContent = location.display_name;
+
+          button.addEventListener("click", () => {
+            setLocation(
+                    Number(location.lat),
+                    Number(location.lon),
+                    location.display_name
+            );
+
+            searchInput.value = location.display_name;
+            marker.openPopup();
+          });
+
+          resultsContainer.appendChild(button);
+        });
+
+      } catch (error) {
+        console.error("Location search failed:", error);
+
+        statusElement.textContent =
+                "Could not search locations. Check your internet connection and try again.";
+      } finally {
+        searchButton.disabled = false;
+        searchButton.textContent = "Search";
+      }
+    }
+
+    searchButton.addEventListener("click", searchLocation);
+
+    searchInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        searchLocation();
+      }
+    });
+
+    // Keep coordinates synchronized if manually edited.
+    function syncMapFromInputs() {
+      const lat = Number(latitudeInput.value);
+      const lng = Number(longitudeInput.value);
+
+      if (
+              latitudeInput.value.trim() === "" ||
+              longitudeInput.value.trim() === "" ||
+              !Number.isFinite(lat) ||
+              !Number.isFinite(lng) ||
+              lat < -90 ||
+              lat > 90 ||
+              lng < -180 ||
+              lng > 180
+      ) {
+        return;
+      }
+
+      marker.setLatLng([lat, lng]);
+
+      selectedLocationText.textContent =
+              lat.toFixed(6) + ", " + lng.toFixed(6);
+
+      map.setView([lat, lng], map.getZoom());
+    }
+
+    latitudeInput.addEventListener("change", syncMapFromInputs);
+    longitudeInput.addEventListener("change", syncMapFromInputs);
+
+    // Ensure Leaflet calculates the correct dimensions after rendering.
+    window.setTimeout(() => {
+      map.invalidateSize();
+    }, 250);
+
+    window.addEventListener("resize", () => {
+      map.invalidateSize();
+    });
+
+    // Initialize coordinate display.
+    selectedLocationText.textContent =
+            defaultLatitude.toFixed(4) + ", " +
+            defaultLongitude.toFixed(4);
+  })();
+</script>
+
+</body>
+</html>

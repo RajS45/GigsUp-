@@ -18,9 +18,6 @@ import java.time.Instant;
 @RequiredArgsConstructor
 public class OtpService {
 
-    private static final int OTP_VALIDITY_SECONDS = 300;
-    private static final int MAX_ATTEMPTS = 5;
-
     private final OtpVerificationRepository otpRepository;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -29,7 +26,6 @@ public class OtpService {
 
     @Transactional
     public void generateOtp(User user) {
-
         String phone = user.getPhoneNumber();
         Instant now = Instant.now();
 
@@ -38,6 +34,7 @@ public class OtpService {
                 random.nextInt(1_000_000)
         );
 
+        // Reuse the existing OTP record for this phone number.
         OtpVerification verification = otpRepository
                 .findByPhoneNumber(phone)
                 .orElseGet(() -> OtpVerification.builder()
@@ -48,16 +45,14 @@ public class OtpService {
         verification.setUserId(user.getId());
         verification.setPhoneNumber(phone);
         verification.setOtpHash(passwordEncoder.encode(otp));
-        verification.setExpiresAt(
-                now.plusSeconds(OTP_VALIDITY_SECONDS)
-        );
+        verification.setExpiresAt(now.plusSeconds(300));
         verification.setAttempts(0);
         verification.setVerified(false);
         verification.setCreatedAt(now);
 
         otpRepository.save(verification);
 
-        // Development testing only. Never log OTPs in production.
+        // Development-only mock SMS. Never log OTPs in production.
         System.out.println(
                 "[DEV MOCK SMS] Phone: " + phone + " | OTP: " + otp
         );
@@ -80,58 +75,28 @@ public class OtpService {
             );
         }
 
-        Instant now = Instant.now();
-        Instant expiresAt = verification.getExpiresAt();
-
-        // Defensive check for a missing expiry timestamp.
-        if (expiresAt == null) {
+        if (verification.getExpiresAt().isBefore(Instant.now())) {
             otpRepository.delete(verification);
-            otpRepository.flush();
 
             throw new ApiException(
-                    "OTP expiry is invalid. Request a new OTP.",
+                    "OTP expired. Please request a new OTP.",
                     HttpStatus.BAD_REQUEST
             );
         }
 
-        // Debug timestamps to help diagnose deployment issues.
-        System.out.println("[OTP DEBUG] Current time: " + now);
-        System.out.println("[OTP DEBUG] Expiry time: " + expiresAt);
-        System.out.println(
-                "[OTP DEBUG] Expired: " + expiresAt.isBefore(now)
-        );
-
-        if (expiresAt.isBefore(now)) {
+        if (verification.getAttempts() >= 5) {
             otpRepository.delete(verification);
-            otpRepository.flush();
 
             throw new ApiException(
-                    "OTP expired. Request a new OTP.",
-                    HttpStatus.BAD_REQUEST
-            );
-        }
-
-        if (verification.getAttempts() >= MAX_ATTEMPTS) {
-            otpRepository.delete(verification);
-            otpRepository.flush();
-
-            throw new ApiException(
-                    "Too many attempts. Request a new OTP.",
+                    "Too many attempts. Please request a new OTP.",
                     HttpStatus.TOO_MANY_REQUESTS
             );
         }
 
-        // Count this verification attempt.
         verification.setAttempts(verification.getAttempts() + 1);
 
-        if (otp == null
-                || verification.getOtpHash() == null
-                || !passwordEncoder.matches(
-                otp.trim(),
-                verification.getOtpHash()
-        )) {
-
-            otpRepository.saveAndFlush(verification);
+        if (!passwordEncoder.matches(otp, verification.getOtpHash())) {
+            otpRepository.save(verification);
 
             throw new ApiException(
                     "Invalid OTP.",
@@ -139,8 +104,7 @@ public class OtpService {
             );
         }
 
-        User user = userRepository
-                .findById(verification.getUserId())
+        User user = userRepository.findById(verification.getUserId())
                 .orElseThrow(() -> new ApiException(
                         "User not found.",
                         HttpStatus.NOT_FOUND
@@ -151,9 +115,5 @@ public class OtpService {
 
         verification.setVerified(true);
         otpRepository.save(verification);
-
-        System.out.println(
-                "[OTP DEBUG] Phone verification successful."
-        );
     }
 }
