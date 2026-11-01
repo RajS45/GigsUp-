@@ -1,4 +1,3 @@
-
 package com.gigsup.config;
 
 import com.gigsup.security.JwtAuthFilter;
@@ -46,7 +45,7 @@ public class SecurityConfig {
                 )
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**","/error").permitAll()
+                        .requestMatchers("/api/auth/**", "/error").permitAll()
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(exception -> exception
@@ -83,15 +82,23 @@ public class SecurityConfig {
         configuration.setAllowedOrigins(List.of(
                 "http://localhost:3000",
                 "http://localhost:5173",
-                "http://localhost:5500"
+                "http://localhost:5500",
+                "https://gigsup-frontend-new.onrender.com"
         ));
 
         configuration.setAllowedMethods(List.of(
-                "GET", "POST", "PUT", "DELETE", "OPTIONS"
+                "GET",
+                "POST",
+                "PUT",
+                "PATCH",
+                "DELETE",
+                "OPTIONS"
         ));
 
         configuration.setAllowedHeaders(List.of(
-                "Authorization", "Content-Type", "X-Requested-With"
+                "Authorization",
+                "Content-Type",
+                "X-Requested-With"
         ));
 
         configuration.setAllowCredentials(true);
