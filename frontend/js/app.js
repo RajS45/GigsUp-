@@ -1,5 +1,5 @@
 (() => {
-  const API_BASE = localStorage.getItem('gigsup_api_base') || 'https://gigsup-backend.onrender.com';
+  const API_BASE = localStorage.getItem('gigsup_api_base') || 'https://gigsup-backend.onrender.com'; 
   window.GigsUp = {
     API_BASE,
     getToken: () => localStorage.getItem('gigsup_token'),
