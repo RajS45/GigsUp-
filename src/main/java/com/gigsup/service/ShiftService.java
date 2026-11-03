@@ -23,8 +23,10 @@ public class ShiftService {
     private final CurrentUserService currentUserService;
     private final GeoUtil geoUtil;
 
+    // VENDOR: Post a new shift
     @Transactional
     public Shift postShift(ShiftRequest req) {
+
         User vendor = currentUserService.getCurrentUser();
 
         if (vendor.getRole() != Role.VENDOR) {
@@ -55,8 +57,10 @@ public class ShiftService {
         return shiftRepository.save(shift);
     }
 
+    // STUDENT: Find nearby matching shifts
     @Transactional(readOnly = true)
     public List<Shift> findMatches(ShiftMatchRequest req) {
+
         User student = currentUserService.getCurrentUser();
 
         if (student.getRole() != Role.STUDENT) {
@@ -73,8 +77,10 @@ public class ShiftService {
         );
     }
 
+    // STUDENT: Accept an available shift
     @Transactional
     public Shift acceptShift(Long id) {
+
         User student = currentUserService.getCurrentUser();
 
         if (student.getRole() != Role.STUDENT) {
@@ -103,9 +109,19 @@ public class ShiftService {
         return shiftRepository.save(shift);
     }
 
+    // VENDOR: Complete a matched shift
     @Transactional
     public Shift completeShift(Long id) {
+
         User user = currentUserService.getCurrentUser();
+
+        // Only vendors can complete shifts
+        if (user.getRole() != Role.VENDOR) {
+            throw new ApiException(
+                    "Only vendors can complete shifts",
+                    HttpStatus.FORBIDDEN
+            );
+        }
 
         Shift shift = shiftRepository.findById(id)
                 .orElseThrow(() -> new ApiException(
@@ -113,25 +129,19 @@ public class ShiftService {
                         HttpStatus.NOT_FOUND
                 ));
 
+        // Only the owning vendor can complete the shift
+        if (!shift.getVendor().getId().equals(user.getId())) {
+            throw new ApiException(
+                    "You are not authorized to complete this shift",
+                    HttpStatus.FORBIDDEN
+            );
+        }
+
+        // Shift must be matched before completion
         if (shift.getStatus() != ShiftStatus.MATCHED) {
             throw new ApiException(
                     "Only matched shifts can be completed",
                     HttpStatus.BAD_REQUEST
-            );
-        }
-
-        boolean isAssignedStudent =
-                shift.getStudent() != null
-                        && shift.getStudent().getId().equals(user.getId());
-
-        boolean isOwningVendor =
-                shift.getVendor().getId().equals(user.getId())
-                        && user.getRole() == Role.VENDOR;
-
-        if (!isAssignedStudent && !isOwningVendor) {
-            throw new ApiException(
-                    "Not authorized to complete this shift",
-                    HttpStatus.FORBIDDEN
             );
         }
 
@@ -140,8 +150,10 @@ public class ShiftService {
         return shiftRepository.save(shift);
     }
 
+    // VENDOR: View posted shifts
     @Transactional(readOnly = true)
     public List<Shift> myPostedShifts() {
+
         User vendor = currentUserService.getCurrentUser();
 
         if (vendor.getRole() != Role.VENDOR) {
@@ -154,8 +166,10 @@ public class ShiftService {
         return shiftRepository.findByVendorId(vendor.getId());
     }
 
+    // STUDENT: View accepted shifts
     @Transactional(readOnly = true)
     public List<Shift> myAcceptedShifts() {
+
         User student = currentUserService.getCurrentUser();
 
         if (student.getRole() != Role.STUDENT) {
